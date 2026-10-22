@@ -1,0 +1,4 @@
+# Pinned to the 1.x line: it negotiates MCP spec 2025-11-25 (what Alexa+ supports).
+# mcp 2.x renames FastMCP -> MCPServer and defaults to a newer protocol revision.
+mcp>=1.25,<2
+pytest>=8
