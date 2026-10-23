@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZeroWaste Kitchen - Alexa+ Simulator</title>
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-dark: #064e3b;
+      --primary-light: #ecfdf5;
+      --primary-border: #a7f3d0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --border-color: #e2e8f0;
+      --user-bubble: #dcfce7;
+      --user-text: #065f46;
+      --alexa-bubble: #ffffff;
+      --alexa-text: #1e293b;
+      --code-bg: #0f172a;
+      --code-text: #e2e8f0;
+      --badge-green: #10b981;
+      --badge-amber: #f59e0b;
+      --badge-red: #ef4444;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Top Bar */
+    header {
+      background: var(--primary-dark);
+      color: #ffffff;
+      padding: 10px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      flex-shrink: 0;
+    }
+
+    .top-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-title span.leaf-icon {
+      font-size: 1.4rem;
+    }
+
+    .spec-badge {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid #10b981;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #a7f3d0;
+    }
+
+    .status-pill.connecting {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: #f59e0b;
+      color: #fde68a;
+    }
+
+    .status-pill.error {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: currentColor;
+    }
+
+    .speak-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      user-select: none;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .speak-toggle input {
+      cursor: pointer;
+    }
+
+    .sim-banner {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      color: #d1fae5;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Main 3-Column Layout */
+    .app-container {
+      display: grid;
+      grid-template-columns: 38% 38% 24%;
+      flex: 1;
+      height: calc(100vh - 86px);
+      overflow: hidden;
+      background: var(--bg-page);
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      border-right: 1px solid var(--border-color);
+      background: var(--bg-card);
+    }
+
+    .column:last-child {
+      border-right: none;
+    }
+
+    .column-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      background: #fafafa;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .column-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .column-subhead {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Column A: Chat */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .message-row {
+      display: flex;
+      flex-direction: column;
+      max-width: 85%;
+    }
+
+    .message-row.user {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .message-row.alexa {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .user .bubble {
+      background-color: var(--user-bubble);
+      color: var(--user-text);
+      border-bottom-right-radius: 2px;
+    }
+
+    .alexa .bubble {
+      background-color: var(--alexa-bubble);
+      color: var(--alexa-text);
+      border: 1px solid var(--border-color);
+      border-bottom-left-radius: 2px;
+    }
+
+    .message-sender {
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin-bottom: 3px;
+      color: var(--text-muted);
+    }
+
+    .tool-intent-line {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-top: 4px;
+      padding: 2px 6px;
+      background: #f1f5f9;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .error-bubble {
+      background-color: #fef2f2 !important;
+      color: #b91c1c !important;
+      border: 1px solid #fecaca !important;
+    }
+
+    /* Chips & Input */
+    .chat-controls {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color);
+      background: #ffffff;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .example-chips-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .example-chips-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .chips-scroll {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip-btn {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 5px 10px;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .chip-btn:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .chat-input-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+
+    .send-btn {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .send-btn:hover {
+      background: #047857;
+    }
+
+    .send-btn:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    /* Column B: Protocol Inspector */
+    .inspector-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #fafafa;
+    }
+
+    .inspector-turn-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .turn-header {
+      background: #f8fafc;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .turn-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool-badge {
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .turn-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .latency-badge {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .latency-badge.fast {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+    }
+
+    .latency-badge.slow {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+    }
+
+    .budget-badge {
+      background: #f1f5f9;
+      color: #64748b;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .turn-body {
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    details.rpc-details {
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+
+    details.rpc-details summary {
+      padding: 6px 10px;
+      background: #f1f5f9;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #475569;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    details.rpc-details summary:hover {
+      background: #e2e8f0;
+    }
+
+    .code-block {
+      background: var(--code-bg);
+      color: var(--code-text);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      line-height: 1.4;
+      padding: 10px;
+      margin: 0;
+      overflow-x: auto;
+      max-height: 240px;
+    }
+
+    /* Column C: My Kitchen */
+    .kitchen-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #fafafa;
+    }
+
+    .kitchen-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .expiry-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 5px;
+    }
+
+    .bar-red {
+      background-color: var(--badge-red);
+    }
+
+    .bar-amber {
+      background-color: var(--badge-amber);
+    }
+
+    .bar-green {
+      background-color: var(--badge-green);
+    }
+
+    .kitchen-card-content {
+      padding-left: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .item-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      text-transform: capitalize;
+    }
+
+    .item-qty {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .item-expiry {
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .item-expiry.status-red {
+      color: #dc2626;
+    }
+
+    .item-expiry.status-amber {
+      color: #d97706;
+    }
+
+    .item-expiry.status-green {
+      color: #059669;
+    }
+
+    .item-meta {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 8px;
+    }
+
+    .empty-state {
+      padding: 40px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .empty-state-icon {
+      font-size: 2rem;
+      opacity: 0.6;
+    }
+
+    @media (max-width: 1024px) {
+      .app-container {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow: visible;
+      }
+      body {
+        overflow: auto;
+      }
+      .column {
+        height: 500px;
+        border-bottom: 1px solid var(--border-color);
+        border-right: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header>
+    <div class="top-header-row">
+      <div class="brand-section">
+        <div class="brand-title">
+          <span class="leaf-icon">🥑</span>
+          ZeroWaste Kitchen
+        </div>
+        <div class="spec-badge">MCP 2025-11-25 · Streamable HTTP</div>
+      </div>
+
+      <div class="header-actions">
+        <label class="speak-toggle" title="Read Alexa+ replies aloud using speech synthesis">
+          <input type="checkbox" id="speakToggle">
+          <span>🔊 Speak replies</span>
+        </label>
+        <div id="connectionPill" class="status-pill connecting">
+          <span class="status-dot"></span>
+          <span id="connectionText">Connecting to /mcp...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sim-banner">
+      <strong>Notice:</strong> Simulated Alexa+ experience: the server is a real MCP server; Alexa+ is played by this page.
+    </div>
+  </header>
+
+  <!-- 3-Column Layout -->
+  <div class="app-container">
+
+    <!-- Column A: Chat -->
+    <section class="column">
+      <div class="column-header">
+        <div>
+          <div class="column-title">💬 Alexa+ Conversation</div>
+          <div class="column-subhead">Household memory & recipe reasoning</div>
+        </div>
+      </div>
+
+      <div class="chat-container">
+        <div class="chat-history" id="chatHistory">
+          <div class="message-row alexa">
+            <span class="message-sender">Alexa+</span>
+            <div class="bubble">
+              Hi! I'm your simulated Alexa+ assistant connected to ZeroWaste Kitchen via MCP.
+              Tell me what groceries you bought, what you cooked, or ask what's about to go bad!
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-controls">
+          <div class="example-chips-container">
+            <div class="example-chips-label">Try an example:</div>
+            <div class="chips-scroll">
+              <button class="chip-btn" onclick="sendExample('I just bought chicken, spinach and yogurt')">
+                "I just bought chicken, spinach and yogurt"
+              </button>
+              <button class="chip-btn" onclick="sendExample('What\'s about to go bad?')">
+                "What's about to go bad?"
+              </button>
+              <button class="chip-btn" onclick="sendExample('I want to make palak chicken curry, what do I need to buy?')">
+                "I want to make palak chicken curry, what do I need to buy?"
+              </button>
+              <button class="chip-btn" onclick="sendExample('I cooked the chicken and spinach tonight')">
+                "I cooked the chicken and spinach tonight"
+              </button>
+              <button class="chip-btn" onclick="sendExample('How am I doing on food waste?')">
+                "How am I doing on food waste?"
+              </button>
+            </div>
+          </div>
+
+          <form class="chat-input-form" id="chatForm" onsubmit="handleChatSubmit(event)">
+            <input
+              type="text"
+              id="chatInput"
+              class="chat-input"
+              placeholder="Talk to Alexa+ (e.g. 'What's about to go bad?')..."
+              autocomplete="off"
+            />
+            <button type="submit" id="sendBtn" class="send-btn">
+              <span>Send</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Column B: Protocol Inspector -->
+    <section class="column">
+      <div class="column-header">
+        <div>
+          <div class="column-title">🔍 Protocol inspector</div>
+          <div class="column-subhead">Real JSON-RPC 2.0 messages over POST /mcp</div>
+        </div>
+        <div class="budget-badge">Alexa+ budget: 500 ms</div>
+      </div>
+
+      <div class="inspector-container" id="inspectorLogs">
+        <div class="empty-state" id="inspectorEmpty">
+          <div class="empty-state-icon">📡</div>
+          <div>No MCP tool calls yet. Click an example or send a message to observe protocol turns.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Column C: My Kitchen -->
+    <section class="column">
+      <div class="column-header">
+        <div>
+          <div class="column-title">🥘 My Kitchen</div>
+          <div class="column-subhead">Live pantry state (whats_expiring &le; 30d)</div>
+        </div>
+        <div id="kitchenItemCount" class="budget-badge">0 items</div>
+      </div>
+
+      <div class="kitchen-container" id="kitchenList">
+        <div class="empty-state">
+          <div class="empty-state-icon">🧊</div>
+          <div>Loading pantry inventory...</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // --- Global State ---
+    let rpcIdCounter = 1;
+    let sessionId = null;
+    let speakEnabled = false;
+
+    const RECIPES = {
+      "palak chicken curry": ["chicken", "spinach", "onion", "garlic", "cream"],
+      "omelette": ["eggs", "butter", "cheese", "onion"],
+      "pasta": ["pasta", "tomato sauce", "garlic", "cheese"],
+      "dal": ["lentils", "onion", "tomato", "garlic", "cumin"],
+      "salad": ["lettuce", "tomato", "cucumber", "olive oil"]
+    };
+
+    // --- Speech Synthesis ---
+    document.getElementById('speakToggle').addEventListener('change', (e) => {
+      speakEnabled = e.target.checked;
+      if (!speakEnabled && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    });
+
+    function speakReply(text) {
+      if (!speakEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.0;
+      u.pitch = 1.0;
+      window.speechSynthesis.speak(u);
+    }
+
+    // --- Intent Interpreter (Deterministic, No AI) ---
+    function cleanItemName(str) {
+      return str
+        .replace(/^(a|an|the|some)\s+/i, '')
+        .replace(/[.,!?;:]+$/g, '')
+        .trim();
+    }
+
+    function parseItemsList(text) {
+      return text
+        .split(/,|\band\b/i)
+        .map(cleanItemName)
+        .filter(item => item.length > 0);
+    }
+
+    function interpret(utterance) {
+      const text = utterance.trim();
+      const lower = text.toLowerCase();
+
+      // 1. Bought groceries
+      const buyMatch = lower.match(/\b(bought|got|picked\s+up|added)\b/i);
+      if (buyMatch) {
+        const verbIndex = buyMatch.index + buyMatch[0].length;
+        const after = text.slice(verbIndex);
+        const items = parseItemsList(after);
+        if (items.length > 0) {
+          return {
+            tool: "add_items",
+            args: { items: items.map(name => ({ name })) }
+          };
+        }
+      }
+
+      // 2. Expiry checks
+      if (/\b(expir|go\s+bad|going\s+bad|spoil)/i.test(lower)) {
+        return {
+          tool: "whats_expiring",
+          args: { within_days: 3 }
+        };
+      }
+
+      // 3. Shopping / recipes
+      if (/\b(need\s+to\s+buy|what\s+do\s+i\s+need|shopping)\b/i.test(lower)) {
+        for (const [recipeName, ingredients] of Object.entries(RECIPES)) {
+          if (lower.includes(recipeName)) {
+            return {
+              tool: "shopping_gap",
+              args: { ingredients }
+            };
+          }
+        }
+        return {
+          tool: null,
+          reply: "Tell me the ingredients and I'll check your kitchen."
+        };
+      }
+
+      // 4. Wasted / thrown out items
+      const wasteMatch = lower.match(/\b(threw\s+away|threw\s+out|threw|wasted|tossed)\b/i);
+      if (wasteMatch) {
+        const verbIndex = wasteMatch.index + wasteMatch[0].length;
+        let after = text.slice(verbIndex);
+        after = after.replace(/\b(away|out|today|tonight|yesterday)\b/gi, '');
+        const items = parseItemsList(after);
+        if (items.length > 0) {
+          return {
+            tool: "use_items",
+            args: { names: items, outcome: "wasted" }
+          };
+        }
+      }
+
+      // 5. Cooked / used items
+      const useMatch = lower.match(/\b(cooked|ate|used|finished)\b/i);
+      if (useMatch) {
+        const verbIndex = useMatch.index + useMatch[0].length;
+        let after = text.slice(verbIndex);
+        after = after.replace(/\b(today|tonight|yesterday|already)\b/gi, '');
+        const items = parseItemsList(after);
+        if (items.length > 0) {
+          return {
+            tool: "use_items",
+            args: { names: items, outcome: "used" }
+          };
+        }
+      }
+
+      // 6. Waste report
+      if (/\b(waste|how\s+am\s+i\s+doing|report)\b/i.test(lower)) {
+        return {
+          tool: "waste_report",
+          args: { days: 7 }
+        };
+      }
+
+      // Fallback
+      return {
+        tool: null,
+        reply: "I can track groceries, tell you what's expiring, check what to buy for a recipe, and report on waste. Try one of the examples."
+      };
+    }
+
+    // --- MCP Transport Client ---
+    async function postMcp(payload) {
+      const headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream",
+        "MCP-Protocol-Version": "2025-11-25"
+      };
+      if (sessionId) {
+        headers["mcp-session-id"] = sessionId;
+      }
+
+      const t0 = performance.now();
+      const res = await fetch("/mcp", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(payload)
+      });
+      const durationMs = Math.round(performance.now() - t0);
+
+      // Save session id if server returned one
+      const returnedSessionId = res.headers.get("mcp-session-id") || res.headers.get("Mcp-Session-Id");
+      if (returnedSessionId) {
+        sessionId = returnedSessionId;
+      }
+
+      if (res.status === 202) {
+        return { durationMs, data: null, status: 202 };
+      }
+
+      const contentType = res.headers.get("content-type") || "";
+      let data = null;
+
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else if (contentType.includes("text/event-stream")) {
+        const text = await res.text();
+        const lines = text.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("data:")) {
+            try {
+              data = JSON.parse(line.slice(5).trim());
+              break;
+            } catch (err) {}
+          }
+        }
+        if (!data) {
+          try { data = JSON.parse(text); } catch (err) { data = { raw: text }; }
+        }
+      } else {
+        const text = await res.text();
+        try { data = JSON.parse(text); } catch (err) { data = { raw: text }; }
+      }
+
+      return { durationMs, data, status: res.status };
+    }
+
+    // --- Lifecycle Init ---
+    async function initMcp() {
+      const pill = document.getElementById("connectionPill");
+      const text = document.getElementById("connectionText");
+
+      try {
+        // 1. initialize
+        const initReq = {
+          jsonrpc: "2.0",
+          id: rpcIdCounter++,
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-11-25",
+            capabilities: {},
+            clientInfo: { name: "alexa-plus-simulator", version: "0.1" }
+          }
+        };
+        await postMcp(initReq);
+
+        // 2. notifications/initialized
+        const notifReq = {
+          jsonrpc: "2.0",
+          method: "notifications/initialized"
+        };
+        await postMcp(notifReq);
+
+        // 3. tools/list
+        const listReq = {
+          jsonrpc: "2.0",
+          id: rpcIdCounter++,
+          method: "tools/list",
+          params: {}
+        };
+        const listRes = await postMcp(listReq);
+        const tools = listRes.data?.result?.tools || [];
+        const toolNames = tools.map(t => t.name).join(", ");
+
+        pill.className = "status-pill";
+        text.textContent = `Connected (${tools.length} tools: ${toolNames})`;
+        pill.title = `Tools discovered: ${toolNames}`;
+
+        // Populate initial kitchen state
+        await refreshKitchen();
+      } catch (err) {
+        console.error("Init error:", err);
+        pill.className = "status-pill error";
+        text.textContent = "Failed to connect to /mcp";
+      }
+    }
+
+    // --- Kitchen Panel Refresh ---
+    async function refreshKitchen() {
+      const listEl = document.getElementById("kitchenList");
+      const countEl = document.getElementById("kitchenItemCount");
+
+      try {
+        const callReq = {
+          jsonrpc: "2.0",
+          id: rpcIdCounter++,
+          method: "tools/call",
+          params: {
+            name: "whats_expiring",
+            arguments: { within_days: 30 }
+          }
+        };
+
+        const { data } = await postMcp(callReq);
+        const items = data?.result?.structuredContent?.items || [];
+        countEl.textContent = `${items.length} item${items.length === 1 ? '' : 's'}`;
+
+        if (items.length === 0) {
+          listEl.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">🛒</div>
+              <div>Your kitchen is currently empty. Add groceries like chicken, spinach or milk!</div>
+            </div>`;
+          return;
+        }
+
+        listEl.innerHTML = items.map(item => {
+          const days = item.days_left;
+          let barClass = "bar-green";
+          let statusClass = "status-green";
+          let daysLabel = `expires in ${days} days`;
+
+          if (days <= 1) {
+            barClass = "bar-red";
+            statusClass = "status-red";
+            daysLabel = days < 0 ? `expired ${-days}d ago` : (days === 0 ? "expires today" : "expires tomorrow");
+          } else if (days <= 3) {
+            barClass = "bar-amber";
+            statusClass = "status-amber";
+            daysLabel = `expires in ${days} days`;
+          }
+
+          const priceTag = item.price ? `<span>Price: ${item.price}</span>` : '';
+          const estimatedTag = item.estimated ? '<span>Estimated shelf-life</span>' : '<span>Stated expiry</span>';
+
+          return `
+            <div class="kitchen-card">
+              <div class="expiry-bar ${barClass}"></div>
+              <div class="kitchen-card-content">
+                <div class="item-header">
+                  <span class="item-name">${escapeHtml(item.name)}</span>
+                  <span class="item-qty">Qty: ${item.quantity}</span>
+                </div>
+                <div class="item-expiry ${statusClass}">
+                  <span>⏰</span> ${daysLabel}
+                </div>
+                <div class="item-meta">
+                  ${priceTag}
+                  ${estimatedTag}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      } catch (err) {
+        console.error("Error refreshing kitchen:", err);
+      }
+    }
+
+    // --- Protocol Inspector UI ---
+    function addInspectorEntry(toolName, reqPayload, resPayload, durationMs) {
+      const emptyEl = document.getElementById("inspectorEmpty");
+      if (emptyEl) emptyEl.remove();
+
+      const container = document.getElementById("inspectorLogs");
+      const isFast = durationMs <= 500;
+      const latencyClass = isFast ? "fast" : "slow";
+
+      const card = document.createElement("div");
+      card.className = "inspector-turn-card";
+
+      card.innerHTML = `
+        <div class="turn-header">
+          <div class="turn-title-group">
+            <span class="tool-badge">${escapeHtml(toolName)}</span>
+          </div>
+          <div class="turn-badges">
+            <span class="latency-badge ${latencyClass}" title="Total client round-trip time">
+              ${isFast ? '⚡' : '⚠️'} ${durationMs} ms
+            </span>
+            <span class="budget-badge">Alexa+ budget: 500 ms</span>
+          </div>
+        </div>
+        <div class="turn-body">
+          <details class="rpc-details" open>
+            <summary>
+              <span>POST /mcp &mdash; JSON-RPC Request</span>
+              <span style="font-family: var(--font-mono); font-size: 0.7rem;">method: tools/call</span>
+            </summary>
+            <pre class="code-block"><code>${escapeHtml(JSON.stringify(reqPayload, null, 2))}</code></pre>
+          </details>
+
+          <details class="rpc-details" open>
+            <summary>
+              <span>Response &mdash; JSON-RPC Result</span>
+              <span style="font-family: var(--font-mono); font-size: 0.7rem;">${durationMs} ms</span>
+            </summary>
+            <pre class="code-block"><code>${escapeHtml(JSON.stringify(resPayload, null, 2))}</code></pre>
+          </details>
+        </div>
+      `;
+
+      container.insertBefore(card, container.firstChild);
+    }
+
+    // --- Chat Handlers ---
+    function appendUserMessage(text, intentLine = null) {
+      const history = document.getElementById("chatHistory");
+      const row = document.createElement("div");
+      row.className = "message-row user";
+
+      let intentHtml = "";
+      if (intentLine) {
+        intentHtml = `<div class="tool-intent-line">${escapeHtml(intentLine)}</div>`;
+      }
+
+      row.innerHTML = `
+        <span class="message-sender">You</span>
+        <div class="bubble">${escapeHtml(text)}</div>
+        ${intentHtml}
+      `;
+      history.appendChild(row);
+      history.scrollTop = history.scrollHeight;
+      return row;
+    }
+
+    function appendAlexaMessage(text, isError = false) {
+      const history = document.getElementById("chatHistory");
+      const row = document.createElement("div");
+      row.className = "message-row alexa";
+      const bubbleClass = isError ? "bubble error-bubble" : "bubble";
+
+      row.innerHTML = `
+        <span class="message-sender">Alexa+</span>
+        <div class="${bubbleClass}">${escapeHtml(text)}</div>
+      `;
+      history.appendChild(row);
+      history.scrollTop = history.scrollHeight;
+
+      if (!isError) {
+        speakReply(text);
+      }
+    }
+
+    async function handleUserUtterance(utterance) {
+      const sendBtn = document.getElementById("sendBtn");
+      const input = document.getElementById("chatInput");
+      sendBtn.disabled = true;
+
+      try {
+        const interpreted = interpret(utterance);
+
+        // Turn without MCP tool call
+        if (!interpreted.tool) {
+          appendUserMessage(utterance);
+          appendAlexaMessage(interpreted.reply);
+          return;
+        }
+
+        // Turn with MCP tool call
+        const intentLine = `-> calling ${interpreted.tool}`;
+        appendUserMessage(utterance, intentLine);
+
+        const rpcPayload = {
+          jsonrpc: "2.0",
+          id: rpcIdCounter++,
+          method: "tools/call",
+          params: {
+            name: interpreted.tool,
+            arguments: interpreted.args
+          }
+        };
+
+        const { durationMs, data, status } = await postMcp(rpcPayload);
+
+        // Add to Protocol Inspector
+        addInspectorEntry(interpreted.tool, rpcPayload, data, durationMs);
+
+        if (status !== 200 || !data || data.error || data.result?.isError) {
+          const errDetail = data?.error?.message || "Couldn't reach the kitchen server";
+          appendAlexaMessage(`Couldn't reach the kitchen server (${errDetail})`, true);
+        } else {
+          const summary = data.result?.structuredContent?.summary ||
+                          data.result?.content?.[0]?.text ||
+                          "I processed your request.";
+          appendAlexaMessage(summary);
+        }
+
+        // Refresh kitchen panel after turn
+        await refreshKitchen();
+
+      } catch (err) {
+        console.error("Utterance error:", err);
+        appendAlexaMessage("Couldn't reach the kitchen server", true);
+      } finally {
+        sendBtn.disabled = false;
+        input.focus();
+      }
+    }
+
+    function sendExample(text) {
+      document.getElementById("chatInput").value = text;
+      handleUserUtterance(text);
+    }
+
+    function handleChatSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById("chatInput");
+      const val = input.value.trim();
+      if (!val) return;
+      input.value = "";
+      handleUserUtterance(val);
+    }
+
+    function escapeHtml(str) {
+      if (typeof str !== "string") return str;
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Initialize on load
+    window.addEventListener("DOMContentLoaded", () => {
+      initMcp();
+    });
+  </script>
+</body>
+</html>

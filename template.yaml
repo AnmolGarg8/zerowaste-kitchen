@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ZeroWaste Kitchen - Alexa+ MCP server on AWS Serverless (Lambda + DynamoDB)
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 512
+    Runtime: python3.12
+    Architectures:
+      - x86_64
+
+Resources:
+  # On-demand single-table DynamoDB storage
+  KitchenTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: household
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: household
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+
+  # Serverless FastMCP server executed via AWS Lambda Web Adapter
+  ZeroWasteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: run.sh
+      # Cap concurrent executions to 5 to protect against runaway invocation costs or DoS abuse during demo
+      ReservedConcurrentExecutions: 5
+      Layers:
+        # AWS Lambda Web Adapter layer forwards HTTP calls to localhost:8000
+        - !Sub arn:aws:lambda:${AWS::Region}:753240598075:layer:LambdaAdapterLayerX86:24
+      Environment:
+        Variables:
+          AWS_LAMBDA_EXEC_WRAPPER: /opt/bootstrap
+          AWS_LWA_PORT: "8000"
+          AWS_LWA_READINESS_CHECK_PATH: "/healthz"
+          PORT: "8000"
+          ZW_PORT: "8000"
+          ZW_HOST: "0.0.0.0"
+          ZW_STORE: "dynamodb"
+          ZW_TABLE: !Ref KitchenTable
+          ZW_HOUSEHOLD: "default"
+      Policies:
+        # Least-privilege CRUD access scoped strictly to the KitchenTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref KitchenTable
+      FunctionUrlConfig:
+        # PROMINENT WARNING: AuthType is set to NONE strictly for the hackathon demo evaluation.
+        # This public unauthenticated endpoint MUST be locked down (using AWS_IAM authentication,
+        # API Gateway, or a custom authorizer) or deleted immediately after the evaluation.
+        AuthType: NONE
+
+Outputs:
+  WebSimulatorUrl:
+    Description: Browser-based Alexa+ Simulator URL
+    Value: !GetAtt ZeroWasteFunctionUrl.FunctionUrl
+  McpEndpointUrl:
+    Description: Streamable HTTP MCP Endpoint URL for Alexa+
+    Value: !Sub "${ZeroWasteFunctionUrl.FunctionUrl}mcp"
+  DynamoDBTableName:
+    Description: DynamoDB Table Name
+    Value: !Ref KitchenTable

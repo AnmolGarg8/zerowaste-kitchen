@@ -9,11 +9,14 @@ Design rules (driven by Alexa+ MCP requirements):
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any, Literal
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import BaseModel, Field
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, JSONResponse
 
 from .store import Store
 
@@ -62,8 +65,28 @@ class NewItem(BaseModel):
     price: float | None = Field(default=None, ge=0, description="Optional price paid")
 
 
-def build_server(store: Store | None = None, host: str = "127.0.0.1", port: int = 8000) -> FastMCP:
-    store = store or Store(os.environ.get("ZW_DB", "zerowaste.db"))
+def build_server(
+    store: Any | None = None,
+    host: str | None = None,
+    port: int | None = None,
+) -> FastMCP:
+    host = host or os.environ.get("ZW_HOST", "127.0.0.1")
+    port = port if port is not None else int(os.environ.get("ZW_PORT", "8000"))
+
+    # When binding to 0.0.0.0 for hosted deployments (e.g. Lambda Function URL / containers),
+    # ensure DNS rebinding protection does not reject deployed hostnames.
+    transport_security = None
+    if host == "0.0.0.0":
+        from mcp.server.transport_security import TransportSecuritySettings
+        transport_security = TransportSecuritySettings(enable_dns_rebinding_protection=False)
+
+    if store is None:
+        store_type = os.environ.get("ZW_STORE", "sqlite").lower()
+        if store_type == "dynamodb":
+            from .dynamo_store import DynamoDBStore
+            store = DynamoDBStore()
+        else:
+            store = Store(os.environ.get("ZW_DB", "zerowaste.db"))
     mcp = FastMCP(
         "ZeroWaste Kitchen",
         instructions=INSTRUCTIONS,
@@ -71,9 +94,21 @@ def build_server(store: Store | None = None, host: str = "127.0.0.1", port: int 
         port=port,
         stateless_http=True,   # no sticky sessions: scales on Lambda/containers
         json_response=True,    # plain JSON replies: lowest latency for short tool calls
+        transport_security=transport_security,
     )
     read_only = ToolAnnotations(readOnlyHint=True, idempotentHint=True)
     write = ToolAnnotations(readOnlyHint=False, destructiveHint=False)
+
+    static_file = Path(__file__).parent / "static" / "simulator.html"
+
+    @mcp.custom_route("/", methods=["GET"])
+    async def simulator(request: Request) -> HTMLResponse:
+        content = static_file.read_text(encoding="utf-8") if static_file.is_file() else "<h1>Simulator not found</h1>"
+        return HTMLResponse(content)
+
+    @mcp.custom_route("/healthz", methods=["GET"])
+    async def healthz(request: Request) -> JSONResponse:
+        return JSONResponse({"ok": True})
 
     @mcp.tool(annotations=write)
     def add_items(items: list[NewItem]) -> dict[str, Any]:

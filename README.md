@@ -27,11 +27,20 @@ Built for the *Build, Ship, Shape: Amazon Developer Hackathon* (Alexa+ track).
 ```bash
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-python -m zerowaste.server            # serves http://127.0.0.1:8000/mcp
+python -m zerowaste.server            # serves http://127.0.0.1:8000/mcp and http://127.0.0.1:8000/
 python demo/alexa_sim.py              # in a second terminal: simulated Alexa+ conversation
 pytest -q                             # unit + end-to-end tests (real HTTP, official MCP client)
 ```
-Env vars: `ZW_PORT`, `ZW_HOST`, `ZW_DB` (SQLite path), `ZW_CURRENCY` (symbol for spoken amounts).
+After starting the server, open http://127.0.0.1:8000/ for the interactive web simulator to chat with Alexa+, monitor live MCP JSON-RPC protocol requests in real-time, and watch your kitchen pantry update.
+
+Env vars: `ZW_PORT`, `ZW_HOST`, `ZW_DB` (SQLite path), `ZW_STORE` (`sqlite` or `dynamodb`), `ZW_TABLE` (DynamoDB table), `ZW_HOUSEHOLD` (household ID), `ZW_CURRENCY` (symbol for spoken amounts).
+
+## Deploy to AWS Serverless
+The server is deployment-ready and tested against a mocked DynamoDB, but not deployed. When you are ready to deploy, run:
+```bash
+sam build && sam deploy --guided
+```
+This deploys the FastMCP server with an HTTPS Function URL (serves `/mcp` for Alexa+ and `/` for the web simulator) on AWS Lambda and on-demand DynamoDB, which is expected to cost cents or less at demo scale; actual cost depends on the account's free-tier status. For the full architecture diagram, cost breakdown, safety settings, and instructions, see [docs/AWS_ARCHITECTURE.md](docs/AWS_ARCHITECTURE.md).
 
 ## About the Alexa+ simulation (read this)
 The author has no Alexa+ device or Alexa+ developer account, so the demo uses `demo/alexa_sim.py`,
@@ -42,6 +51,6 @@ and is not coupled to the simulator; the same endpoint can be registered as an A
 ## Known limits
 - Single household (real use needs account linking / OAuth to scope data per user).
 - Shelf-life values are conservative rules of thumb; swap in USDA FoodKeeper for production.
-- SQLite storage; a DynamoDB adapter is planned for serverless deployment.
+- DynamoDB single-table storage available for serverless; SQLite remains default for local development.
 
 License: MIT
